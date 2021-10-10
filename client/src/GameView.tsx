@@ -30,6 +30,13 @@ const GameView = (props: GameViewProps) => {
     const [player, setPlayer] = useState(Player.Empty);
     const [errorMessage, setErrorMessage] = useState("");
     const [online, setOnline] = useState(true);
+
+    let defaultSocketUrl;
+    if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development')
+        defaultSocketUrl = `ws://localhost:5000/ws/${params.id}`;
+    else
+        defaultSocketUrl = `ws://leiniucsd:5000/ws/${params.id}`
+
     const [socketUrl, setSocketUrl] = useState(`ws://localhost:5000/ws/${params.id}`);
     const [token, setToken] = useState("");
     const forceUpdate = useForceUpdate();
