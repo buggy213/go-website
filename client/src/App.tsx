@@ -1,31 +1,29 @@
-import { Avatar, Button, Grid, Typography } from '@mui/material';
-import { BrowserRouter, Route, Router, Switch } from 'react-router-dom';
+import { Button, Grid } from '@mui/material';
+import { BrowserRouter, Route, Switch, Link } from 'react-router-dom';
 import GameView from './GameView';
+import LobbyView from './LobbyView';
+import ProfileView from './ProfileView';
 
 function App() {
     return (
         <BrowserRouter>
-            <Grid container spacing={2}>
+            <Grid container spacing={2} padding={2}>
                 <Grid item xs={10}>
-                    <Button variant="text">Home</Button>
+                    <Link to="/">Home</Link>
                 </Grid>
                 <Grid container item xs={2} justifyContent="flex-end">
-                    <Button variant="text">
-                        Profile
-                    </Button>
+                    <Link to="/profile">Profile</Link>
                 </Grid>
             </Grid>
             <Switch>
-                <Route path="/">
-
-                </Route>
                 <Route path="/play/:id">
-                    <GameView>
-                        
-                    </GameView>
+                    <GameView />
                 </Route>
                 <Route path="/profile">
-
+                    <ProfileView />
+                </Route>
+                <Route path="/">
+                    <LobbyView />
                 </Route>
             </Switch>
         </BrowserRouter>

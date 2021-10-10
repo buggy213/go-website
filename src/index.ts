@@ -1,29 +1,138 @@
-import express from "express";
-import { Game } from "./game-logic/game";
-const app = express(); //Line 2
-const port = process.env.PORT || 5000; //Line 3
+import e from "express";
+import { request } from "http";
+import { Game, Player, playerFromString } from "./game-logic/game";
 
-const game = new Game([19, 19]);
-game.playAt({x: 0, y: 0});
-game.playAt({x: 1, y: 0});
-game.pass();
-game.playAt({x: 0, y: 1});
-game.pass();
-game.playAt({x: 1, y: 1});
-game.playAt({x: 2, y: 0});
-game.pass();
-game.playAt({x: 2, y: 1});
-game.pass();
-game.playAt({x: 0, y: 2});
-game.pass();
-game.playAt({x: 1, y: 2});
-game.pass();
-game.playAt({x: 0, y: 0});
+const randomWords = require('random-words');
+const express = require('express')
+const enableWs = require('express-ws')
 
-// This displays message that the server running and listening to specified port
-app.listen(port, () => console.log(`Listening on port ${port}`)); //Line 6
+const app = express()
+enableWs(app)
 
-// create a GET route
-app.get('/express_backend', (req, res) => { //Line 9
-  res.send({ express: 'YOUR EXPRESS BACKEND IS CONNECTED TO REACT' }); //Line 10
-}); //Line 11
+interface GameSession
+{
+    blackConnected: boolean,
+    blackToken: string,
+    whiteConnected: boolean,
+    whiteToken: string,
+    game: Game,
+    started: boolean,
+    websockets: any[]
+}
+
+let ongoingGames = new Map<string, any>();
+
+const generateToken = (): string => {
+    return randomWords(5).join('-');
+}
+
+const createSession = (): GameSession => {
+    return {
+        blackConnected: false,
+        whiteConnected: false,
+        blackToken: generateToken(),
+        whiteToken: generateToken(),
+        game: new Game([19, 19]),
+        started: false,
+        websockets: []
+    };
+}
+
+const sendJson = (ws: any, object: any) => {
+    ws.send(JSON.stringify(object));
+}
+
+app.ws('/ws/:id', (ws: any, req: any) => {
+    ws.on('message', (msg: any) => {
+        if (req.params.id === "offline")
+            return;
+        
+        let session;
+        if (ongoingGames.has(req.params.id))
+        {
+            session = ongoingGames.get(req.params.id);
+        }
+        else
+        {
+            session = createSession();
+            ongoingGames.set(req.params.id, session);
+        }
+        session.websockets.push(ws);
+        console.log(msg);
+        msg = JSON.parse(msg);
+        if ("request" in msg)
+        {
+            if (session.started)
+            {
+                sendJson(ws, {});
+                return;
+            }
+            if (msg.request === Player.Black)
+            {
+                if (session.blackConnected)
+                {
+                    sendJson(ws, {
+                        player: Player.White,
+                        token: session.whiteToken,
+                    });
+                    session.whiteConnected = true;
+                }
+                else 
+                {
+                    sendJson(ws, {
+                        player: Player.Black,
+                        token: session.blackToken,
+                    });
+                    session.blackConnected = true;
+                }
+            }
+            else if (msg.request === Player.White)
+            {
+                if (session.whiteConnected)
+                {
+                    sendJson(ws, {
+                        player: Player.Black,
+                        token: session.blackToken,
+                    });
+                    session.blackConnected = true;
+                }
+                else 
+                {
+                    sendJson(ws, {
+                        player: Player.White,
+                        token: session.whiteToken,
+                    });
+                    session.whiteConnected = true;
+                }
+            }
+            if (session.whiteConnected && session.blackConnected)
+            {
+                session.started = true;
+            }
+        }
+        else 
+        {
+            const p = playerFromString(msg.content.split(' ')[0]);
+            const expectedToken = (p === Player.Black ? session.blackToken : (p === Player.White ? session.whiteToken : ""));
+            if (session.game.getTurn() === p && msg.token === expectedToken)
+            {
+                const finished = session.game.processMessage(msg.content);
+                session.websockets.forEach((sock: any) => {
+                    sendJson(sock, {content: msg.content});
+                });
+
+                if (finished)
+                {
+                    // TODO: commit to DB
+                }
+            }
+        }
+        
+    });
+
+    ws.on('close', () => {
+        console.log('WebSocket was closed');
+    });
+})
+
+app.listen(5000)
