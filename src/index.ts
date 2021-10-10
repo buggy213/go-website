@@ -136,7 +136,7 @@ app.ws('/ws/:id', (ws: any, req: any) => {
 
                 if (finished)
                 {
-                    // TODO: commit to DB
+                    console.log("game finished");
                 }
             }
         }
