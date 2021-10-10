@@ -4,6 +4,7 @@ import "./database"
 const randomWords = require('random-words');
 const express = require('express')
 const enableWs = require('express-ws')
+const cors = require('cors');
 
 const app = express()
 enableWs(app)
@@ -147,7 +148,7 @@ app.ws('/ws/:id', (ws: any, req: any) => {
     });
 })
 
-app.get('/active-games', function (req: any, res: any) {
+app.get('/active-games', cors(), function (req: any, res: any) {
     res.json(
         Array.from(ongoingGames.values()).filter(sess => !sess.started).map(function (gameSession) {
             const opponentName = gameSession.blackConnected ? gameSession.blackUsername : gameSession.whiteUsername;

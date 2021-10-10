@@ -39,7 +39,7 @@ const LobbyView = (props: LobbyViewProps) => {
     const [boardSize, setBoardSize] = useState<[number, number]>([19, 19]);
 
     useEffect(() => {
-        fetch('/active-games').then(response => response.json()).then(responseObject => {
+        fetch(`${window.location.origin}:5000/active-games`).then(response => response.json()).then(responseObject => {
             setRows(responseObject);
         });
     }, []);
