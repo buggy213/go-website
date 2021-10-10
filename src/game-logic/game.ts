@@ -65,6 +65,7 @@ class Game
     private turnHistory: Array<string>;
     private prisoners: Map<Player, number>;
     private finalScores: Map<Player, number>;
+    private boardHistory: Array<string>;
 
     constructor(size: [number, number], komi = 6.5, scoringRules = ScoringRules.Territory) 
     {
@@ -78,6 +79,7 @@ class Game
         this.turnHistory = [];
         this.prisoners = new Map([[Player.Black, 0], [Player.White, 0]]);
         this.finalScores = new Map([[Player.Black, 0], [Player.White, 0]]);
+        this.boardHistory = [];
     }
 
     reset(): void
@@ -89,6 +91,7 @@ class Game
         this.turnHistory = [];
         this.prisoners = new Map([[Player.Black, 0], [Player.White, 0]]);
         this.finalScores = new Map([[Player.Black, 0], [Player.White, 0]]);
+        this.boardHistory = [];
     }
     
     getTurn(): Player
@@ -99,6 +102,11 @@ class Game
     getTurnHistory(): Array<string>
     {
         return this.turnHistory;
+    }
+
+    getScoringRules(): ScoringRules
+    {
+        return this.scoringRules
     }
 
     getLastTurn(): string
@@ -139,8 +147,7 @@ class Game
 
         if (this.board[pos.y][pos.x] !== Player.Empty)
             return [false, 'Space is already occupied'];
-
-
+        const boardCopy = JSON.stringify(this.board);
         this.board[pos.y][pos.x] = this.turn;
         // first resolve liberties of adjacent enemy groups, then our group
         for (const adjacent of this.adjacent(pos)) 
@@ -168,6 +175,12 @@ class Game
             return [false, 'No self capture'];
         }
 
+        if (this.positionalSuperko(this.board))
+        {
+            this.board = JSON.parse(boardCopy);
+            return [false, 'Positional superko'];
+        }
+
         this.turnHistory.push(`${this.turn} ${pos.x} ${pos.y}`);
         this.turn = opposite(this.turn);
 
@@ -185,6 +198,17 @@ class Game
         {
             this.board[pos.y][pos.x] = Player.Empty;
         }
+    }
+
+    positionalSuperko(board: Array<Array<Player>>): boolean
+    {
+        const boardString = this.printBoard();
+        if (this.boardHistory.includes(boardString))
+        {
+            return true;
+        }
+        this.boardHistory.push(boardString);
+        return false;
     }
 
     finished(): boolean
@@ -283,17 +307,25 @@ class Game
     end(winner?: Player): void 
     {
         this.inProgress = false;
+        if (!winner)
+        {
+            this.finalScores = this.score();
+        }
     }
 
-    score(): [number, number] 
+    score(): Map<Player, number> 
     {
-        // Implement later
-        return [0, 0];
+        // too hard lmao
+        let s =  new Map<Player, number>([
+            [Player.Black, 0],
+            [Player.White, 0]
+        ]);
+        return s;
     }
 
     printBoard(): string 
     {
-        return this.board.map(row => row.map(x => x ? x : ' ').join('')).join('\n');
+        return this.board.map(row => row.map(x => x !== ' ' ? x : '.').join('')).join('\n');
     }
 
     timeout(player: Player): void
@@ -385,6 +417,7 @@ export {
     Game,
     ScoringRules,
     Player,
+    opposite
 }
 export type {
     TimeControls,

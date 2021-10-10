@@ -11,6 +11,9 @@ enableWs(app)
 
 interface GameSession
 {
+    matchId: "",
+    blackUsername: string,
+    whiteUsername: string,
     blackConnected: boolean,
     blackToken: string,
     whiteConnected: boolean,
@@ -28,6 +31,9 @@ const generateToken = (): string => {
 
 const createSession = (): GameSession => {
     return {
+        matchId: "",
+        blackUsername: "Anonymous",
+        whiteUsername: "Anonymous",
         blackConnected: false,
         whiteConnected: false,
         blackToken: generateToken(),
@@ -55,6 +61,7 @@ app.ws('/ws/:id', (ws: any, req: any) => {
         else
         {
             session = createSession();
+            session.matchId = req.params.id;
             ongoingGames.set(req.params.id, session);
         }
         session.websockets.push(ws);
@@ -110,6 +117,12 @@ app.ws('/ws/:id', (ws: any, req: any) => {
                 session.started = true;
             }
         }
+        else if ("requestState" in msg)
+        {
+            sendJson(ws, {
+                state: session.game.serializeState()
+            })
+        }
         else 
         {
             const p = playerFromString(msg.content.split(' ')[0]);
@@ -134,5 +147,19 @@ app.ws('/ws/:id', (ws: any, req: any) => {
         console.log('WebSocket was closed');
     });
 })
+
+app.get('/active-games', function (req: any, res: any) {
+    res.json(
+        Array.from(ongoingGames.values()).filter(sess => !sess.started).map(function (gameSession) {
+            const opponentName = gameSession.blackConnected ? gameSession.blackUsername : gameSession.whiteUsername;
+            const alreadyPicked = gameSession.blackConnected ? Player.Black : Player.White;
+            console.log(gameSession);
+            console.log(alreadyPicked);
+            return { playerName: opponentName, boardSize: gameSession.game.getBoardSize(), 
+                     alreadyPicked: alreadyPicked, scoringRules: gameSession.game.getScoringRules(), 
+                     timeControls: null, matchId: gameSession.matchId };
+        })
+    );
+});
 
 app.listen(5000)

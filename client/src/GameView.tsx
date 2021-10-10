@@ -13,7 +13,16 @@ function useForceUpdate() {
     return () => setValue(value => value + 1); // update the state to force render
 }
 
-const GameView = (props: any) => {
+interface GameMode
+{
+    requestedColor: Player
+}
+
+interface GameViewProps
+{
+    gameMode: GameMode
+}
+const GameView = (props: GameViewProps) => {
     let params = useParams<{ id: string }>();
 
     const [game, setGame] = useState<Game>(new Game([19, 19]));
@@ -41,38 +50,41 @@ const GameView = (props: any) => {
 
     useEffect(() => {
         if (readyState === ReadyState.OPEN) {
+            const development = (!process.env.NODE_ENV || process.env.NODE_ENV === 'development');
+            const storage = development ? window.sessionStorage : window.localStorage;
             if (!lastJsonMessage) {
-                const x = window.localStorage.getItem(params.id);
-                if (x !== null)
-                {
+                const x = storage.getItem(params.id);
+                if (x !== null) {
                     const stored = JSON.parse(x);
                     setToken(stored.token);
                     setPlayer(playerFromString(stored.player));
                     sendJsonMessage({ requestState: stored.token });
                 }
                 else {
-                    sendJsonMessage({ request: Player.Black }); // Change this later
+                    console.log(props.gameMode.requestedColor);
+                    sendJsonMessage({ request: props.gameMode.requestedColor }); 
                 }
                 return;
             }
-            if ('state' in lastJsonMessage)
-            {
-
+            if ('state' in lastJsonMessage) {
+                game.deserializeState(lastJsonMessage.state);
             }
             if ('token' in lastJsonMessage) {
                 // initialization
                 setToken(lastJsonMessage.token);
                 setPlayer(playerFromString(lastJsonMessage.player));
-                window.localStorage.setItem(params.id, JSON.stringify({
+                storage.setItem(params.id, JSON.stringify({
                     token: lastJsonMessage.token,
                     player: lastJsonMessage.player
                 }));
             }
-            if (lastJsonMessage.content !== game.getLastTurn()) {
-                const finished = game.processMessage(lastJsonMessage.content);
-                if (finished)
-                    forceUpdate();
-                setGame(game);
+            if ('content' in lastJsonMessage) {
+                if (lastJsonMessage.content !== game.getLastTurn()) {
+                    const finished = game.processMessage(lastJsonMessage.content);
+                    if (finished)
+                        forceUpdate();
+                    setGame(game);
+                }
             }
         }
     }, [lastJsonMessage, readyState]);
@@ -233,3 +245,6 @@ const GameView = (props: any) => {
 }
 
 export default GameView;
+export type {
+    GameMode
+}

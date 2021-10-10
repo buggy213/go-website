@@ -1,10 +1,14 @@
 import { Button, Grid } from '@mui/material';
+import { useState } from 'react';
 import { BrowserRouter, Route, Switch, Link } from 'react-router-dom';
-import GameView from './GameView';
+import { Player } from './game';
+import GameView, { GameMode } from './GameView';
 import LobbyView from './LobbyView';
 import ProfileView from './ProfileView';
 
 function App() {
+    const [gameMode, setGameMode] = useState<GameMode>({requestedColor: Player.Black});
+
     return (
         <BrowserRouter>
             <Grid container spacing={2} padding={2}>
@@ -17,13 +21,13 @@ function App() {
             </Grid>
             <Switch>
                 <Route path="/play/:id">
-                    <GameView />
+                    <GameView gameMode={gameMode}/>
                 </Route>
                 <Route path="/profile">
                     <ProfileView />
                 </Route>
                 <Route path="/">
-                    <LobbyView />
+                    <LobbyView setGameMode={setGameMode}/>
                 </Route>
             </Switch>
         </BrowserRouter>
