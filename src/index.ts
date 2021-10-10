@@ -1,6 +1,5 @@
-import e from "express";
-import { request } from "http";
 import { Game, Player, playerFromString } from "./game-logic/game";
+import "./database"
 
 const randomWords = require('random-words');
 const express = require('express')
